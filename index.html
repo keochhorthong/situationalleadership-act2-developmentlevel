@@ -1,0 +1,348 @@
+
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:var(--font-sans,'Segoe UI',Arial,sans-serif)}
+.wrap{padding:1.5rem 1rem;max-width:700px;margin:0 auto}
+.intro{background:var(--surface-1,#f5f5f0);border-radius:12px;padding:1rem 1.25rem;margin-bottom:1.5rem;border:0.5px solid var(--border,#e0e0d8)}
+.intro h2{font-size:17px;font-weight:500;color:var(--text-primary,#1a1a18);margin-bottom:.4rem}
+.intro p{font-size:14px;color:var(--text-secondary,#5f5e5a);line-height:1.6}
+.scorebar{display:flex;align-items:center;gap:12px;margin-bottom:1.25rem}
+.score-pill{font-size:13px;font-weight:500;background:var(--bg-accent,#e6f1fb);color:var(--text-accent,#185fa5);padding:4px 14px;border-radius:20px;white-space:nowrap}
+.progress{flex:1;height:6px;background:var(--surface-0,#ebebE4);border-radius:3px;overflow:hidden}
+.progress-fill{height:100%;background:var(--fill-accent,#378ADD);border-radius:3px;transition:width .4s ease}
+.cards-area{margin-bottom:1.5rem}
+.cards-area h3{font-size:13px;font-weight:500;color:var(--text-muted,#888);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.75rem}
+.card-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;min-height:80px}
+.scenario-card{background:var(--surface-2,#fff);border:1.5px solid var(--border-strong,#ccc);border-radius:10px;padding:.85rem 1rem;font-size:13.5px;color:var(--text-primary,#1a1a18);line-height:1.55;cursor:grab;user-select:none;transition:transform .15s,box-shadow .15s,border-color .2s,opacity .2s;position:relative}
+.scenario-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.1)}
+.scenario-card.dragging{opacity:.45;transform:scale(.97);cursor:grabbing}
+.scenario-card.placed{opacity:.5;cursor:default;pointer-events:none}
+.scenario-card .card-num{position:absolute;top:8px;right:10px;font-size:11px;font-weight:500;color:var(--text-muted,#888)}
+.drop-zones{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.5rem}
+.drop-zone{border:2px dashed var(--border-strong,#ccc);border-radius:12px;padding:1rem;min-height:140px;transition:border-color .2s,background .2s;position:relative}
+.drop-zone.drag-over{border-color:var(--border-accent,#378ADD);background:var(--bg-accent,#e6f1fb)}
+.drop-zone.correct-drop{border-color:#3B6D11;background:#EAF3DE;border-style:solid}
+.drop-zone.wrong-drop{border-color:#A32D2D;background:#FCEBEB;border-style:solid;animation:shake .3s ease}
+@keyframes shake{0%,100%{transform:translateX(0)}25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.zone-header{display:flex;align-items:center;gap:8px;margin-bottom:.6rem}
+.zone-badge{font-size:13px;font-weight:500;padding:3px 10px;border-radius:20px}
+.d1-badge{background:#E1F5EE;color:#0F6E56}
+.d2-badge{background:#FAEEDA;color:#854F0B}
+.d3-badge{background:#EEEDFE;color:#3C3489}
+.d4-badge{background:#E6F1FB;color:#0C447C}
+.zone-label{font-size:13px;font-weight:500;color:var(--text-primary,#1a1a18)}
+.zone-sub{font-size:11.5px;color:var(--text-secondary,#5f5e5a);margin-bottom:.5rem}
+.zone-dropped{display:flex;flex-direction:column;gap:6px;min-height:40px}
+.dropped-chip{background:var(--surface-1,#f5f5f0);border:0.5px solid var(--border,#e0e0d8);border-radius:6px;padding:.45rem .7rem;font-size:12.5px;color:var(--text-primary,#1a1a18);line-height:1.45;display:flex;justify-content:space-between;align-items:flex-start;gap:8px}
+.chip-remove{font-size:15px;color:var(--text-muted,#888);cursor:pointer;line-height:1;flex-shrink:0;padding:0 2px}
+.chip-remove:hover{color:var(--text-danger,#A32D2D)}
+.correct-chip{border-color:#97C459;background:#EAF3DE}
+.wrong-chip{border-color:#F09595;background:#FCEBEB}
+.btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:1.25rem}
+.btn{padding:.55rem 1.1rem;border-radius:var(--radius,8px);font-size:14px;font-weight:500;cursor:pointer;border:0.5px solid var(--border-strong,#ccc);background:var(--surface-2,#fff);color:var(--text-primary,#1a1a18);transition:background .15s}
+.btn:hover{background:var(--surface-1,#f5f5f0)}
+.btn-primary{background:var(--fill-accent,#378ADD);color:#fff;border-color:var(--fill-accent,#378ADD)}
+.btn-primary:hover{background:#185fa5}
+.btn-reset{background:var(--surface-1,#f5f5f0)}
+.feedback-box{border-radius:12px;padding:1rem 1.25rem;font-size:14px;line-height:1.6;display:none}
+.feedback-box.show{display:block}
+.feedback-success{background:#EAF3DE;border:1px solid #97C459;color:#27500A}
+.feedback-partial{background:#FAEEDA;border:1px solid #FAC775;color:#633806}
+.feedback-item{display:flex;gap:8px;margin-bottom:.4rem;font-size:13px}
+.fi-label{font-weight:500;min-width:28px}
+.explanation-toggle{background:none;border:none;font-size:13px;color:var(--text-accent,#185fa5);cursor:pointer;padding:0;margin-top:.75rem;text-decoration:underline}
+.explanations{display:none;margin-top:.75rem;border-top:0.5px solid var(--border,#e0e0d8);padding-top:.75rem}
+.explanations.open{display:block}
+.exp-item{margin-bottom:.6rem;font-size:13px;color:var(--text-secondary,#5f5e5a)}
+.exp-item strong{color:var(--text-primary,#1a1a18)}
+.empty-hint{font-size:12px;color:var(--text-muted,#888);font-style:italic;text-align:center;padding:.5rem 0}
+</style>
+
+<div class="wrap">
+<h2 class="sr-only" style="position:absolute;width:1px;height:1px;overflow:hidden">Drag and drop: sort team member descriptions into D1 to D4 development levels</h2>
+
+<div class="intro">
+  <h2>Sort into development levels</h2>
+  <p>Drag each team member card into the correct development level zone (D1–D4). Remember: development level is <strong>task-specific</strong>, not a permanent label. Read each scenario carefully before placing.</p>
+</div>
+
+<div class="scorebar">
+  <span class="score-pill" id="score-pill">0 / 8 placed</span>
+  <div class="progress"><div class="progress-fill" id="prog" style="width:0%"></div></div>
+</div>
+
+<div class="cards-area">
+  <h3>Team member scenarios</h3>
+  <div class="card-grid" id="card-pool">
+    <div class="scenario-card" draggable="true" data-id="1" data-answer="D1">
+      <span class="card-num">1</span>
+      Ratha just joined the F&B team. She's eager to impress and volunteers for every task — but she's never operated a POS system before and needs to be shown every step.
+    </div>
+    <div class="scenario-card" draggable="true" data-id="2" data-answer="D2">
+      <span class="card-num">2</span>
+      Sopheak has been writing weekly safety reports for 3 months. His reports are getting better, but he recently said "I don't think I'll ever get the format right" and skipped two report submissions last week.
+    </div>
+    <div class="scenario-card" draggable="true" data-id="3" data-answer="D4">
+      <span class="card-num">3</span>
+      Dara has run the go-kart track briefing for two years. She handles unexpected situations independently, trains new staff confidently, and rarely needs manager input.
+    </div>
+    <div class="scenario-card" draggable="true" data-id="4" data-answer="D3">
+      <span class="card-num">4</span>
+      Piseth is fully capable of managing the weekend shift schedule — he's done it many times. But he always double-checks with you before finalising, saying "I just want to make sure I'm not missing anything."
+    </div>
+    <div class="scenario-card" draggable="true" data-id="5" data-answer="D1">
+      <span class="card-num">5</span>
+      Mony is enthusiastic about her new role in customer service but has never handled a complaint before. She asked four different colleagues the same question today and is very eager to learn.
+    </div>
+    <div class="scenario-card" draggable="true" data-id="6" data-answer="D2">
+      <span class="card-num">6</span>
+      Virak was excited when assigned to lead a team meeting for the first time. Two weeks in, he's become quiet and disengaged after receiving critical feedback, and says the task "is harder than it looks."
+    </div>
+    <div class="scenario-card" draggable="true" data-id="7" data-answer="D3">
+      <span class="card-num">7</span>
+      Chantha is a skilled technician who services kart engines well. When asked to train a new hire independently, she hesitates: "What if I teach them something wrong?" despite years of experience.
+    </div>
+    <div class="scenario-card" draggable="true" data-id="8" data-answer="D4">
+      <span class="card-num">8</span>
+      Bunna manages monthly inventory with zero errors and proactively flags shortages before they become problems. He rarely needs to be told what to do and often brings solutions, not just problems.
+    </div>
+  </div>
+</div>
+
+<div class="drop-zones">
+  <div class="drop-zone" id="zone-D1" data-zone="D1">
+    <div class="zone-header">
+      <span class="zone-badge d1-badge">D1</span>
+      <span class="zone-label">Enthusiastic Beginner</span>
+    </div>
+    <div class="zone-sub">Low competence · High commitment</div>
+    <div class="zone-dropped" id="dropped-D1"><div class="empty-hint">Drop cards here</div></div>
+  </div>
+  <div class="drop-zone" id="zone-D2" data-zone="D2">
+    <div class="zone-header">
+      <span class="zone-badge d2-badge">D2</span>
+      <span class="zone-label">Disillusioned Learner</span>
+    </div>
+    <div class="zone-sub">Low–moderate competence · Low commitment</div>
+    <div class="zone-dropped" id="dropped-D2"><div class="empty-hint">Drop cards here</div></div>
+  </div>
+  <div class="drop-zone" id="zone-D3" data-zone="D3">
+    <div class="zone-header">
+      <span class="zone-badge d3-badge">D3</span>
+      <span class="zone-label">Capable but Cautious</span>
+    </div>
+    <div class="zone-sub">High competence · Variable commitment</div>
+    <div class="zone-dropped" id="dropped-D3"><div class="empty-hint">Drop cards here</div></div>
+  </div>
+  <div class="drop-zone" id="zone-D4" data-zone="D4">
+    <div class="zone-header">
+      <span class="zone-badge d4-badge">D4</span>
+      <span class="zone-label">Self-Reliant Achiever</span>
+    </div>
+    <div class="zone-sub">High competence · High commitment</div>
+    <div class="zone-dropped" id="dropped-D4"><div class="empty-hint">Drop cards here</div></div>
+  </div>
+</div>
+
+<div class="btn-row">
+  <button class="btn btn-primary" onclick="checkAnswers()">Check answers</button>
+  <button class="btn btn-reset" onclick="resetAll()">Reset</button>
+</div>
+
+<div class="feedback-box" id="feedback"></div>
+</div>
+
+<script>
+const explanations = {
+  1:"D1 — Ratha has high enthusiasm but zero task competence for POS. She needs clear step-by-step direction (S1: Directing).",
+  2:"D2 — Sopheak has some skill but is losing confidence and motivation. He needs both structure and encouragement (S2: Coaching).",
+  3:"D4 — Dara is fully competent and self-motivated. She can be trusted with ownership and autonomy (S4: Delegating).",
+  4:"D3 — Piseth has the skills but doubts himself. He needs reassurance and collaborative support, not more instructions (S3: Supporting).",
+  5:"D1 — Mony is eager but has no prior experience with complaints. She needs clear guidance and close supervision (S1: Directing).",
+  6:"D2 — Virak started motivated but hit the 'disillusionment dip' after feedback. He needs coaching plus emotional support (S2: Coaching).",
+  7:"D3 — Chantha has real competence but low confidence in a new context (training others). Supporting her confidence is the priority (S3: Supporting).",
+  8:"D4 — Bunna is both highly competent and self-directed. Delegating full ownership is the right approach (S4: Delegating)."
+};
+
+let placed = {};
+let dragId = null;
+
+function updateScore(){
+  const n=Object.keys(placed).length;
+  document.getElementById('score-pill').textContent=n+' / 8 placed';
+  document.getElementById('prog').style.width=(n/8*100)+'%';
+}
+
+function getCardData(id){
+  return document.querySelector('.scenario-card[data-id="'+id+'"]');
+}
+
+function getCardText(id){
+  const el=getCardData(id);
+  if(!el)return '';
+  return el.textContent.replace(/^\s*\d+\s*/,'').trim();
+}
+
+document.querySelectorAll('.scenario-card').forEach(card=>{
+  card.addEventListener('dragstart',e=>{
+    dragId=card.dataset.id;
+    setTimeout(()=>card.classList.add('dragging'),0);
+  });
+  card.addEventListener('dragend',()=>{
+    card.classList.remove('dragging');
+  });
+});
+
+document.querySelectorAll('.drop-zone').forEach(zone=>{
+  zone.addEventListener('dragover',e=>{
+    e.preventDefault();
+    zone.classList.add('drag-over');
+  });
+  zone.addEventListener('dragleave',()=>zone.classList.remove('drag-over'));
+  zone.addEventListener('drop',e=>{
+    e.preventDefault();
+    zone.classList.remove('drag-over');
+    if(!dragId)return;
+    const zoneId=zone.dataset.zone;
+    if(placed[dragId]===zoneId)return;
+    if(placed[dragId]){
+      removeFromZone(dragId,placed[dragId]);
+    }
+    placed[dragId]=zoneId;
+    const card=getCardData(dragId);
+    if(card)card.classList.add('placed');
+    addChip(dragId,zoneId);
+    updateScore();
+    updateEmpty();
+    dragId=null;
+  });
+});
+
+function addChip(id,zone){
+  const container=document.getElementById('dropped-'+zone);
+  const chip=document.createElement('div');
+  chip.className='dropped-chip';
+  chip.dataset.chipId=id;
+  const txt=document.createElement('span');
+  txt.textContent=getCardText(id).substring(0,90)+(getCardText(id).length>90?'…':'');
+  const btn=document.createElement('span');
+  btn.className='chip-remove';
+  btn.innerHTML='&times;';
+  btn.title='Remove';
+  btn.onclick=()=>{
+    removeFromZone(id,zone);
+    const card=getCardData(id);
+    if(card)card.classList.remove('placed');
+    delete placed[id];
+    updateScore();
+    updateEmpty();
+  };
+  chip.appendChild(txt);
+  chip.appendChild(btn);
+  container.appendChild(chip);
+  updateEmpty();
+}
+
+function removeFromZone(id,zone){
+  const container=document.getElementById('dropped-'+zone);
+  const chip=container.querySelector('[data-chip-id="'+id+'"]');
+  if(chip)chip.remove();
+  container.querySelectorAll('.dropped-chip').forEach(c=>{
+    c.classList.remove('correct-chip','wrong-chip');
+  });
+}
+
+function updateEmpty(){
+  ['D1','D2','D3','D4'].forEach(z=>{
+    const c=document.getElementById('dropped-'+z);
+    const chips=c.querySelectorAll('.dropped-chip');
+    let hint=c.querySelector('.empty-hint');
+    if(chips.length>0){
+      if(hint)hint.remove();
+    } else {
+      if(!hint){hint=document.createElement('div');hint.className='empty-hint';hint.textContent='Drop cards here';c.appendChild(hint);}
+    }
+  });
+}
+
+function checkAnswers(){
+  if(Object.keys(placed).length===0){
+    const fb=document.getElementById('feedback');
+    fb.className='feedback-box feedback-partial show';
+    fb.innerHTML='<strong>No cards placed yet.</strong> Drag the team member cards into the D1–D4 zones first, then check your answers.';
+    return;
+  }
+  let correct=0;
+  let html='';
+  const wrongItems=[];
+  const correctItems=[];
+
+  document.querySelectorAll('[data-chip-id]').forEach(chip=>{
+    chip.classList.remove('correct-chip','wrong-chip');
+  });
+
+  document.querySelectorAll('.drop-zone').forEach(z=>{
+    z.classList.remove('correct-drop','wrong-drop');
+  });
+
+  for(let id in placed){
+    const card=getCardData(id);
+    const answer=card.dataset.answer;
+    const userZone=placed[id];
+    const isCorrect=answer===userZone;
+    if(isCorrect){correct++;correctItems.push(id);}
+    else {wrongItems.push({id,answer,userZone});}
+    const chip=document.querySelector('[data-chip-id="'+id+'"]');
+    if(chip)chip.classList.add(isCorrect?'correct-chip':'wrong-chip');
+  }
+
+  const total=Object.keys(placed).length;
+  const fb=document.getElementById('feedback');
+  const allDone=total===8;
+
+  if(correct===total&&allDone){
+    fb.className='feedback-box feedback-success show';
+    html='<strong>Perfect score! All 8 correct.</strong><br>';
+  } else {
+    fb.className='feedback-box feedback-partial show';
+    html='<strong>'+correct+' of '+total+' placed correctly.</strong>';
+    if(!allDone)html+=' Place all 8 cards to complete the activity.';
+    html+='<br>';
+    if(wrongItems.length){
+      html+='<br><strong>Review these:</strong><br>';
+      wrongItems.forEach(w=>{
+        html+='<div class="feedback-item"><span class="fi-label">Card '+w.id+':</span><span>You chose <strong>'+w.userZone+'</strong> — correct answer is <strong>'+w.answer+'</strong>.</span></div>';
+      });
+    }
+  }
+
+  html+='<button class="explanation-toggle" onclick="toggleExp(this)">Show explanations</button>';
+  html+='<div class="explanations" id="exp-box">';
+  for(let id in placed){
+    html+='<div class="exp-item"><strong>Card '+id+':</strong> '+explanations[id]+'</div>';
+  }
+  html+='</div>';
+  fb.innerHTML=html;
+}
+
+function toggleExp(btn){
+  const box=document.getElementById('exp-box');
+  if(!box)return;
+  box.classList.toggle('open');
+  btn.textContent=box.classList.contains('open')?'Hide explanations':'Show explanations';
+}
+
+function resetAll(){
+  placed={};
+  document.querySelectorAll('.scenario-card').forEach(c=>c.classList.remove('placed','dragging'));
+  ['D1','D2','D3','D4'].forEach(z=>{
+    const c=document.getElementById('dropped-'+z);
+    c.innerHTML='<div class="empty-hint">Drop cards here</div>';
+    document.getElementById('zone-'+z).classList.remove('correct-drop','wrong-drop');
+  });
+  const fb=document.getElementById('feedback');
+  fb.className='feedback-box';
+  fb.innerHTML='';
+  updateScore();
+}
+</script>
